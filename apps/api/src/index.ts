@@ -4,11 +4,11 @@ import {
   HealthResponse,
   store,
   ContentJob,
-  CreateJobRequest,
+  CreateJobRequestSchema,
   ModelProviderFactory,
   ProviderConfig,
   Brief,
-  AnswerClarifyingQuestionsRequest,
+  AnswerClarifyingQuestionsRequestSchema,
 } from '@content-os/shared';
 import { Clarifier } from './clarifier';
 import { JobOrchestrator } from './orchestrator';
@@ -72,7 +72,7 @@ app.get('/api/jobs', (_req: Request, res: Response) => {
 });
 
 app.post('/api/jobs', (req: Request, res: Response) => {
-  const result = CreateJobRequest.safeParse(req.body);
+  const result = CreateJobRequestSchema.safeParse(req.body);
 
   if (!result.success) {
     return res.status(400).json({ error: result.error.message });
@@ -202,7 +202,7 @@ app.post(
   async (req: Request, res: Response) => {
     try {
       const { briefId } = req.params;
-      const result = AnswerClarifyingQuestionsRequest.safeParse(req.body);
+      const result = AnswerClarifyingQuestionsRequestSchema.safeParse(req.body);
 
       if (!result.success) {
         return res.status(400).json({ error: result.error.message });
