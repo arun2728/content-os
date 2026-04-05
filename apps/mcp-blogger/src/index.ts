@@ -1,4 +1,8 @@
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -128,6 +132,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   switch (name) {
     case 'get_posts': {
+      console.error(`[MCP Blogger] Tool called: get_posts. Arguments:`, args);
       try {
         const { maxResults, pageToken, labels, fetchBodies } = (args || {}) as {
           maxResults?: number;
@@ -165,6 +170,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'get_post': {
+      console.error(`[MCP Blogger] Tool called: get_post. Arguments:`, args);
       try {
         const { postId } = args as { postId: string };
         const result = await bloggerClient.getPost(postId);
@@ -191,6 +197,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'search_posts': {
+      console.error(`[MCP Blogger] Tool called: search_posts. Arguments:`, args);
       try {
         const { query } = args as { query: string };
         const result = await bloggerClient.searchPosts(query);
@@ -217,6 +224,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'get_blog': {
+      console.error(`[MCP Blogger] Tool called: get_blog.`);
       try {
         const result = await bloggerClient.getBlog();
 
@@ -242,6 +250,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'create_draft': {
+      console.error(`[MCP Blogger] Tool called: create_draft. Arguments:`, { title: (args as any)?.title });
       try {
         const { title, content } = args as { title: string; content: string };
         const result = await bloggerClient.createDraft(title, content);
@@ -287,7 +296,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('[MCP Blogger] Connected to stdio transport');
+  console.error('[MCP Env BLOGGER_BLOG_ID] ', process.env.BLOGGER_BLOG_ID);
+  console.error('[MCP Env] ', process.env.BLOGGER_API_KEY ? '(Secret exists)' : '(Missing)');
+  console.error('[MCP Blogger] Server is up and connected to stdio transport');
 }
 
 main().catch(console.error);
