@@ -125,17 +125,10 @@ OLLAMA_MODEL=llama2
 
 ### `apps/mcp-blogger`
 ```env
-# Google OAuth
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-GOOGLE_REDIRECT_URI=http://localhost:3000/auth/callback
-GOOGLE_API_KEY=...
 
 # Default blog for publishing
 BLOGGER_BLOG_ID=your-blog-id
-
-# Encryption key for credential storage
-CONTENT_OS_SECRET=your-secret-key
+BLOGGER_API_KEY=your-blogger-api-key
 ```
 
 ## API Endpoints
@@ -294,7 +287,6 @@ NODE_ENV=production pnpm start
 ### Blogger authentication fails
 - Verify OAuth credentials are correct
 - Check redirect URI matches configuration
-- Ensure `CONTENT_OS_SECRET` is set for credential encryption
 
 ### SSE connection drops
 - Check CORS is enabled on API

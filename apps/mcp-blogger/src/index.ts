@@ -1,23 +1,26 @@
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
-  Server,
-  Tool,
-  TextContent,
-  CallToolRequest,
-} from '@modelcontextprotocol/sdk/server/index.js';
-import {
-  StdioServerTransport,
-  StdioClientTransport,
-} from '@modelcontextprotocol/sdk/server/stdio.js';
+  ListToolsRequestSchema,
+  CallToolRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { BloggerClient } from './blogger-client';
 
 // ============================================================================
-// MCP SERVER FOR BLOGGER INTEGRATION
+// MCP SERVER FOR BLOGGER INTEGRATION (API KEY AUTH)
 // ============================================================================
 
-const server = new Server({
-  name: 'content-os-blogger',
-  version: '0.1.0',
-});
+const server = new Server(
+  {
+    name: 'content-os-blogger',
+    version: '0.1.0',
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  }
+);
 
 const bloggerClient = new BloggerClient();
 
@@ -25,55 +28,70 @@ const bloggerClient = new BloggerClient();
 // TOOLS
 // ============================================================================
 
-const tools: Tool[] = [
+const tools = [
   {
-    name: 'publish_draft_to_blogger',
-    description: 'Publish a draft post to Google Blogger',
+    name: 'get_posts',
+    description:
+      'Get a list of posts from the blog. Returns post titles, URLs, content, labels, and metadata.',
     inputSchema: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
-        title: {
-          type: 'string',
-          description: 'Post title',
+        maxResults: {
+          type: 'number',
+          description:
+            'Maximum number of posts to return (default: 10, max: 500)',
         },
-        content: {
+        pageToken: {
           type: 'string',
-          description: 'Post content (HTML or plain text)',
+          description: 'Token for pagination (from a previous response)',
         },
         labels: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Post labels/tags',
-        },
-        isDraft: {
-          type: 'boolean',
-          description: 'Whether to save as draft (true) or publish immediately (false)',
-          default: true,
-        },
-      },
-      required: ['title', 'content'],
-    },
-  },
-  {
-    name: 'list_blogs',
-    description: 'List authenticated user blogs',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-  },
-  {
-    name: 'authenticate_blogger',
-    description: 'Authenticate with Google Blogger (OAuth flow)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        authCode: {
           type: 'string',
-          description: 'OAuth authorization code from Google',
+          description: 'Comma-separated list of labels to filter by',
+        },
+        fetchBodies: {
+          type: 'boolean',
+          description:
+            'Whether to include post content bodies (default: true)',
         },
       },
-      required: ['authCode'],
+    },
+  },
+  {
+    name: 'get_post',
+    description: 'Get a single post by its ID',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        postId: {
+          type: 'string',
+          description: 'The ID of the post to retrieve',
+        },
+      },
+      required: ['postId'],
+    },
+  },
+  {
+    name: 'search_posts',
+    description: 'Search blog posts by a query string',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search query to find matching posts',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_blog',
+    description:
+      'Get blog metadata (name, description, URL, post count, etc.)',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {},
     },
   },
 ];
@@ -82,125 +100,139 @@ const tools: Tool[] = [
 // HANDLERS
 // ============================================================================
 
-server.setRequestHandler(async (request) => {
-  if (request.method === 'tools/list') {
-    return { tools };
-  }
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return { tools };
+});
 
-  if (request.method === 'tools/call') {
-    const callRequest = request as CallToolRequest;
-    const { name, arguments: args } = callRequest.params;
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
 
-    switch (name) {
-      case 'publish_draft_to_blogger':
-        try {
-          const { title, content, labels, isDraft } = args as {
-            title: string;
-            content: string;
-            labels?: string[];
-            isDraft?: boolean;
-          };
+  switch (name) {
+    case 'get_posts': {
+      try {
+        const { maxResults, pageToken, labels, fetchBodies } = (args || {}) as {
+          maxResults?: number;
+          pageToken?: string;
+          labels?: string;
+          fetchBodies?: boolean;
+        };
 
-          // For v1, use a default blog ID
-          const blogId = process.env.BLOGGER_BLOG_ID || 'default-blog';
+        const result = await bloggerClient.getPosts({
+          maxResults: maxResults || 10,
+          pageToken,
+          labels,
+          fetchBodies: fetchBodies ?? true,
+        });
 
-          const result = await bloggerClient.publishPost(
-            blogId,
-            title,
-            content,
-            isDraft ?? true
-          );
-
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: JSON.stringify(result, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error publishing post: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-      case 'list_blogs':
-        try {
-          const blogs = await bloggerClient.listBlogs();
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: JSON.stringify(blogs, null, 2),
-              },
-            ],
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error listing blogs: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-      case 'authenticate_blogger':
-        try {
-          const { authCode } = args as { authCode: string };
-          await bloggerClient.handleAuthorizationCode(authCode);
-
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: 'Successfully authenticated with Blogger',
-              },
-            ],
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error authenticating: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-      default:
         return {
           content: [
             {
               type: 'text' as const,
-              text: `Unknown tool: ${name}`,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error fetching posts: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,
         };
+      }
     }
-  }
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: 'Unknown request',
-      },
-    ],
-    isError: true,
-  };
+    case 'get_post': {
+      try {
+        const { postId } = args as { postId: string };
+        const result = await bloggerClient.getPost(postId);
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error fetching post: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+
+    case 'search_posts': {
+      try {
+        const { query } = args as { query: string };
+        const result = await bloggerClient.searchPosts(query);
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error searching posts: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+
+    case 'get_blog': {
+      try {
+        const result = await bloggerClient.getBlog();
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error fetching blog: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+
+    default:
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Unknown tool: ${name}`,
+          },
+        ],
+        isError: true,
+      };
+  }
 });
 
 // ============================================================================
