@@ -4,18 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(false);
 
     try {
       const response = await fetch('http://localhost:3001/api/jobs', {
@@ -27,9 +27,7 @@ export default function Home() {
       if (response.ok) {
         const job = await response.json();
         console.log('[v0] Created job:', job);
-        setSuccess(true);
-        setPrompt('');
-        setTimeout(() => setSuccess(false), 3000);
+        router.push(`/jobs/${job.id}`);
       } else {
         setError('Failed to create job. Please check if the API is running on port 3001.');
       }
@@ -78,12 +76,6 @@ export default function Home() {
               {error && (
                 <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
                   {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="p-3 bg-green-100 text-green-800 text-sm rounded-md dark:bg-green-950 dark:text-green-200">
-                  Job created successfully! Check the API server logs for more details.
                 </div>
               )}
 
