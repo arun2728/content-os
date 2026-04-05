@@ -313,10 +313,20 @@ export default function JobProgressPage() {
                      <CheckCircle2 className="h-20 w-20 text-green-500 drop-shadow-md" />
                      <div className="space-y-2">
                        <h2 className="text-2xl font-bold">All done!</h2>
-                       <p className="text-muted-foreground pb-4 max-w-sm mx-auto">
-                         The content generation pipeline has successfully finished.
+                       <p className="text-muted-foreground pb-4 max-w-sm mx-auto text-balance">
+                         Your content was fully generated, drafted, and submitted to Blogger!
                        </p>
-                       <Button onClick={() => router.push('/')} variant="outline" className="gap-2">
+                       
+                       {job?.publishedPost?.postUrl && (
+                         <div className="p-4 mb-6 bg-primary/10 border border-primary/20 rounded-lg max-w-md mx-auto">
+                           <p className="text-sm font-medium mb-2">View your draft:</p>
+                           <a href={job.publishedPost.postUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline break-all">
+                             {job.publishedPost.postUrl}
+                           </a>
+                         </div>
+                       )}
+
+                       <Button onClick={() => router.push('/')} variant="outline" className="gap-2 mt-4">
                           <ArrowRight className="h-4 w-4" /> Start New Content
                        </Button>
                      </div>

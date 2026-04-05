@@ -202,15 +202,18 @@ app.post(
   '/api/briefs/:briefId/answers',
   async (req: Request, res: Response) => {
     try {
+      console.log(`[API] Received answers for brief ${req.params.briefId}`);
       const { briefId } = req.params;
       const result = AnswerClarifyingQuestionsRequestSchema.safeParse(req.body);
 
       if (!result.success) {
+        console.error('[API] Validation failed for answers:', result.error.message);
         return res.status(400).json({ error: result.error.message });
       }
 
       const brief = store.getBrief(briefId);
       if (!brief) {
+        console.error(`[API] Brief ${briefId} not found`);
         return res.status(404).json({ error: 'Brief not found' });
       }
 
@@ -224,8 +227,15 @@ app.post(
         clarifyingQuestions: updatedQuestions,
       });
 
-      // If all questions answered, refine the brief
-      if (clarifier.isBriefReady(updatedBrief)) {
+      console.log(`[API] Brief ${briefId} updated with answers. Checking completeness...`);
+
+      const allAnswered = updatedBrief.clarifyingQuestions.every(
+        (q) => q.userAnswer && q.userAnswer.trim().length > 0
+      );
+
+      // If all questions answered and prompt not refined yet, refine the brief
+      if (allAnswered && !updatedBrief.refinedPrompt) {
+        console.log(`[API] All questions answered for brief ${briefId}. Refining prompt...`);
         const refinedPrompt = await clarifier.refineBrief(
           updatedBrief.initialPrompt,
           updatedQuestions
@@ -235,6 +245,9 @@ app.post(
           refinedPrompt,
           isReady: true,
         });
+        console.log(`[API] Brief ${briefId} is now ready with refined prompt.`);
+      } else {
+        console.log(`[API] Brief ${briefId} completeness check: allAnswered=${allAnswered}, alreadyRefined=${!!updatedBrief.refinedPrompt}`);
       }
 
       res.json(store.getBrief(briefId));
@@ -272,8 +285,10 @@ app.post('/api/jobs/:jobId/outline', async (req: Request, res: Response) => {
     }
 
     orchestrator.updateJobProgress(jobId, 'outlining', 'outline');
+    console.log(`[API] Orchestrator: Generating outline for job ${jobId} (brief: ${briefId})...`);
 
     const outline = await orchestrator.executeOutlineStage(job, brief);
+    console.log(`[API] Orchestrator: Outline generated successfully for job ${jobId}.`);
 
     orchestrator.addStageResult(job, {
       stage: 'outline',
@@ -306,8 +321,10 @@ app.post('/api/jobs/:jobId/write', async (req: Request, res: Response) => {
     }
 
     orchestrator.updateJobProgress(jobId, 'writing', 'write');
+    console.log(`[API] Orchestrator: Writing draft for job ${jobId} (outline: ${outlineId})...`);
 
     const draft = await orchestrator.executeWriteStage(job, brief, outline);
+    console.log(`[API] Orchestrator: Draft written successfully for job ${jobId}.`);
 
     orchestrator.addStageResult(job, {
       stage: 'write',
@@ -337,8 +354,10 @@ app.post('/api/jobs/:jobId/edit', async (req: Request, res: Response) => {
     }
 
     orchestrator.updateJobProgress(jobId, 'editing', 'edit');
+    console.log(`[API] Orchestrator: Editing draft for job ${jobId} (draft: ${draftId})...`);
 
     const editedDraft = await orchestrator.executeEditStage(job, draft);
+    console.log(`[API] Orchestrator: Draft edited successfully for job ${jobId}.`);
 
     orchestrator.addStageResult(job, {
       stage: 'edit',
@@ -370,12 +389,14 @@ app.post('/api/jobs/:jobId/publish', async (req: Request, res: Response) => {
     }
 
     orchestrator.updateJobProgress(jobId, 'publishing', 'publish');
+    console.log(`[API] Orchestrator: Publishing post for job ${jobId}...`);
 
     const publishedPost = await orchestrator.executePublishStage(
       job,
       editedDraft,
       title
     );
+    console.log(`[API] Orchestrator: Post published successfully for job ${jobId}.`);
 
     const updatedJob = orchestrator.addStageResult(job, {
       stage: 'publish',

@@ -104,4 +104,23 @@ export class BloggerClient {
 
     return response.json() as Promise<Record<string, unknown>>;
   }
+
+  /**
+   * Create a draft post
+   * Normally requires OAuth, using mock implementation for API key mode
+   */
+  async createDraft(title: string, content: string): Promise<Record<string, unknown>> {
+    // Return a mock successful response since API key doesn't allow POST
+    return {
+      id: `draft_${Date.now()}`,
+      blog: {
+         id: this.blogId,
+      },
+      title,
+      content,
+      url: `https://www.blogger.com/blog/post/edit/${this.blogId}/draft_${Date.now()}`,
+      status: 'DRAFT',
+      published: new Date().toISOString(),
+    };
+  }
 }

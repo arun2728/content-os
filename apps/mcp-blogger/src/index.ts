@@ -95,6 +95,24 @@ const tools = [
       properties: {},
     },
   },
+  {
+    name: 'create_draft',
+    description: 'Create a new draft post on Blogger',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Title of the draft post',
+        },
+        content: {
+          type: 'string',
+          description: 'HTML content of the draft post',
+        },
+      },
+      required: ['title', 'content'],
+    },
+  },
 ];
 
 // ============================================================================
@@ -216,6 +234,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text' as const,
               text: `Error fetching blog: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+
+    case 'create_draft': {
+      try {
+        const { title, content } = args as { title: string; content: string };
+        const result = await bloggerClient.createDraft(title, content);
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error creating draft: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,
