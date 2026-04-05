@@ -1,0 +1,24 @@
+{
+  "name": "@content-os/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@content-os/shared": "workspace:*",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "openai": "^4.52.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22",
+    "typescript": "5.7.3",
+    "tsx": "^4.7.0"
+  }
+}
