@@ -47,12 +47,10 @@ content-os/
 #### `apps/mcp-blogger` - MCP Server
 - **Protocol**: Model Context Protocol
 - **Features**:
-  - Google Blogger OAuth integration
-  - Encrypted credential storage
-  - Post publication tools
+  - API Key based read access to Blogger
+  - Post listing and search
 - **Key Classes**:
-  - `CredentialManager`: Handles encrypted credential storage
-  - `BloggerClient`: Manages Blogger API interactions
+  - `BloggerClient`: Manages Blogger API interactions using API Key auth
 
 ### Packages
 
@@ -206,15 +204,13 @@ Adding new providers:
 
 ## Blogger MCP Server
 
-The MCP Blogger server provides tools for AI models to publish content:
+The MCP Blogger server provides tools for AI models to query blog content:
 
 ### Tools
-- `authenticate_blogger` - OAuth authentication
-- `list_blogs` - List user's blogs
-- `publish_draft_to_blogger` - Publish post
-
-### Credentials
-Credentials are encrypted with AES-256-GCM and stored in `~/.content-os/credentials.enc`.
+- `get_posts` - List posts from the blog
+- `get_post` - Get a single post by ID
+- `search_posts` - Search posts by query
+- `get_blog` - Get blog metadata (ID, name, URL, etc.)
 
 ## Storage
 
@@ -284,9 +280,10 @@ NODE_ENV=production pnpm start
 - Verify model is available
 - Check rate limits
 
-### Blogger authentication fails
-- Verify OAuth credentials are correct
-- Check redirect URI matches configuration
+### Blogger integration fails
+- Verify `BLOGGER_API_KEY` is correct in `.env`
+- Ensure the API key has the "Blogger API v3" enabled in Google Cloud Console
+- Verify `BLOGGER_BLOG_ID` matches your blog's ID (found in the blog's URL)
 
 ### SSE connection drops
 - Check CORS is enabled on API

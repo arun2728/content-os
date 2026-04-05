@@ -185,13 +185,13 @@ export class ContentStore {
 
   getStats(): {
     jobsCount: number;
-    briefs Count: number;
+    briefsCount: number;
     outlinesCount: number;
     draftsCount: number;
   } {
     return {
       jobsCount: this.jobs.size,
-      'briefs Count': this.briefs.size,
+      briefsCount: this.briefs.size,
       outlinesCount: this.outlines.size,
       draftsCount: this.drafts.size,
     };

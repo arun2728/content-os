@@ -1,7 +1,36 @@
-.DS_Store   
+# Dependencies
+node_modules/
 
-node_modules
+# Builds
+dist/
+.next/
+out/
+build/
 
+# Environment
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-.next
+# Debug / Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Editor / System
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Content OS Secrets
+.content-os/
+credentials.enc
