@@ -9,7 +9,8 @@
     "packages/shared"
   ],
   "scripts": {
-    "dev": "pnpm --parallel -F './apps/**' dev",
+    "clean": "pnpm -r --parallel exec rm -rf dist .next build out",
+    "dev": "pnpm clean && pnpm -F @content-os/shared build && pnpm --parallel -F './apps/**' dev",
     "dev:web": "pnpm --filter @content-os/web dev",
     "dev:api": "pnpm --filter @content-os/api dev",
     "dev:blogger": "pnpm --filter @content-os/mcp-blogger dev",
