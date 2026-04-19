@@ -4,6 +4,7 @@ import {
   Outline,
   Draft,
   EditedDraft,
+  LinkedInDraft,
   PublishedPost,
 } from './index';
 
@@ -22,6 +23,7 @@ export class ContentStore {
   private outlines: Map<string, Outline> = new Map();
   private drafts: Map<string, Draft> = new Map();
   private editedDrafts: Map<string, EditedDraft> = new Map();
+  private linkedinDrafts: Map<string, LinkedInDraft> = new Map();
   private publishedPosts: Map<string, PublishedPost> = new Map();
 
   // Subscribers for real-time updates
@@ -126,6 +128,19 @@ export class ContentStore {
   }
 
   // ========================================================================
+  // LINKEDIN DRAFT OPERATIONS
+  // ========================================================================
+
+  createLinkedInDraft(draft: LinkedInDraft): LinkedInDraft {
+    this.linkedinDrafts.set(draft.id, draft);
+    return draft;
+  }
+
+  getLinkedInDraft(draftId: string): LinkedInDraft | undefined {
+    return this.linkedinDrafts.get(draftId);
+  }
+
+  // ========================================================================
   // PUBLISHED POST OPERATIONS
   // ========================================================================
 
@@ -179,6 +194,7 @@ export class ContentStore {
     this.outlines.clear();
     this.drafts.clear();
     this.editedDrafts.clear();
+    this.linkedinDrafts.clear();
     this.publishedPosts.clear();
     this.jobSubscribers.clear();
   }

@@ -1,0 +1,50 @@
+services:
+  devto-mcp:
+    image: ghcr.io/arun2728/dev-to-mcp:latest
+    pull_policy: always
+    environment:
+      - TRANSPORT=http
+      - PORT=3000
+      - DEVTO_API_KEY=${DEVTO_API_KEY}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - MODEL_PROVIDER=${MODEL_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama2}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY:-ollama}
+      - DEVTO_API_KEY=${DEVTO_API_KEY}
+      - DEVTO_MCP_URL=http://devto-mcp:3000/mcp
+    depends_on:
+      devto-mcp:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      - api
+    restart: unless-stopped

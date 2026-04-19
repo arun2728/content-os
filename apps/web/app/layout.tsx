@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Content OS',
-  description: 'AI-powered content orchestration: clarify, outline, write, edit, and publish to Blogger',
+  description: 'AI-powered content orchestration: clarify, outline, write, edit, and publish to dev.to',
 };
 
 export default function RootLayout({

@@ -268,6 +268,42 @@ app.get('/api/briefs/:briefId', (req: Request, res: Response) => {
 });
 
 // ============================================================================
+// ARTIFACT ENDPOINTS
+// ============================================================================
+
+app.get('/api/outlines/:outlineId', (req: Request, res: Response) => {
+  const outline = store.getOutline(req.params.outlineId);
+  if (!outline) {
+    return res.status(404).json({ error: 'Outline not found' });
+  }
+  res.json(outline);
+});
+
+app.get('/api/drafts/:draftId', (req: Request, res: Response) => {
+  const draft = store.getDraft(req.params.draftId);
+  if (!draft) {
+    return res.status(404).json({ error: 'Draft not found' });
+  }
+  res.json(draft);
+});
+
+app.get('/api/edited-drafts/:editedDraftId', (req: Request, res: Response) => {
+  const editedDraft = store.getEditedDraft(req.params.editedDraftId);
+  if (!editedDraft) {
+    return res.status(404).json({ error: 'Edited draft not found' });
+  }
+  res.json(editedDraft);
+});
+
+app.get('/api/linkedin-drafts/:linkedinDraftId', (req: Request, res: Response) => {
+  const linkedinDraft = store.getLinkedInDraft(req.params.linkedinDraftId);
+  if (!linkedinDraft) {
+    return res.status(404).json({ error: 'LinkedIn draft not found' });
+  }
+  res.json(linkedinDraft);
+});
+
+// ============================================================================
 // ORCHESTRATION ENDPOINTS
 // ============================================================================
 
@@ -373,6 +409,48 @@ app.post('/api/jobs/:jobId/edit', async (req: Request, res: Response) => {
   }
 });
 
+// Execute LinkedIn draft stage
+app.post('/api/jobs/:jobId/linkedin', async (req: Request, res: Response) => {
+  try {
+    const { jobId } = req.params;
+    const { editedDraftId, briefId } = req.body;
+
+    const job = store.getJob(jobId);
+    const editedDraft = store.getEditedDraft(editedDraftId);
+    const brief = store.getBrief(briefId);
+
+    if (!job || !editedDraft || !brief) {
+      return res
+        .status(404)
+        .json({ error: 'Job, edited draft, or brief not found' });
+    }
+
+    orchestrator.updateJobProgress(jobId, 'generating_linkedin', 'linkedin');
+    console.log(`[API] Orchestrator: Generating LinkedIn draft for job ${jobId}...`);
+
+    const linkedinDraft = await orchestrator.executeLinkedInStage(
+      job,
+      editedDraft,
+      brief
+    );
+    console.log(`[API] Orchestrator: LinkedIn draft generated for job ${jobId}.`);
+
+    orchestrator.addStageResult(job, {
+      stage: 'linkedin',
+      status: 'completed',
+      data: { linkedinDraftId: linkedinDraft.id },
+      completedAt: new Date(),
+    });
+
+    store.updateJob(jobId, { linkedinDraft });
+
+    res.json(linkedinDraft);
+  } catch (error) {
+    console.error('[API] Error generating LinkedIn draft:', error);
+    res.status(500).json({ error: 'Failed to generate LinkedIn draft' });
+  }
+});
+
 // Execute publish stage
 app.post('/api/jobs/:jobId/publish', async (req: Request, res: Response) => {
   try {
@@ -389,14 +467,14 @@ app.post('/api/jobs/:jobId/publish', async (req: Request, res: Response) => {
     }
 
     orchestrator.updateJobProgress(jobId, 'publishing', 'publish');
-    console.log(`[API] Orchestrator: Publishing post for job ${jobId}...`);
+    console.log(`[API] Orchestrator: Publishing draft to dev.to for job ${jobId}...`);
 
     const publishedPost = await orchestrator.executePublishStage(
       job,
       editedDraft,
       title
     );
-    console.log(`[API] Orchestrator: Post published successfully for job ${jobId}.`);
+    console.log(`[API] Orchestrator: Draft published to dev.to for job ${jobId}.`);
 
     const updatedJob = orchestrator.addStageResult(job, {
       stage: 'publish',
@@ -413,7 +491,7 @@ app.post('/api/jobs/:jobId/publish', async (req: Request, res: Response) => {
     res.json({ publishedPost, job: store.getJob(jobId) });
   } catch (error) {
     console.error('[API] Error executing publish:', error);
-    res.status(500).json({ error: 'Failed to publish post' });
+    res.status(500).json({ error: 'Failed to publish draft to dev.to' });
   }
 });
 

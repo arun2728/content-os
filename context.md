@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a local-first app that helps a user go from a vague article idea to a fully written blog draft published to Blogger as a draft through an MCP server, while also generating a LinkedIn draft version of the same content.
+Build a local-first app that helps a user go from a vague article idea to a fully written blog draft published to dev.to as a draft through an MCP server, while also generating a LinkedIn draft version of the same content.
 
 The first version should keep the system simple:
 
@@ -10,9 +10,9 @@ The first version should keep the system simple:
 - One UI for conversation, progress, and results.
 - One orchestration backend.
 - One background job worker.
-- One Blogger MCP server.
+- One dev.to MCP server.
 - Support for multiple model providers: local Llama, OpenAI, or Anthropic.
-- Draft publishing only for Blogger.
+- Draft publishing only for dev.to.
 - LinkedIn output is generated as text for the user to copy.
 
 This system should be designed so that it can later grow into:
@@ -37,10 +37,10 @@ Once the system decides the brief is complete enough, it starts a background tas
 1. Freezes the brief.
 2. Creates an outline.
 3. Writes the article.
-4. Edits and formats the article for Blogger.
-5. Publishes the result as a Blogger draft through the Blogger MCP server.
+4. Edits and formats the article for dev.to.
+5. Publishes the result as a dev.to draft through the dev.to MCP server.
 6. Generates a LinkedIn draft post based on the article.
-7. Returns the Blogger draft link and LinkedIn draft text to the UI.
+7. Returns the dev.to draft link and LinkedIn draft text to the UI.
 
 The user should be able to watch status updates in real time.
 
@@ -58,7 +58,7 @@ Do not build these in v1 unless they come for free:
 - No local database yet.
 - No automatic LinkedIn publishing yet.
 - No image generation pipeline yet.
-- No retrieval of old blogs from Blogger yet.
+- No retrieval of old articles from dev.to yet.
 - No full agent swarm with uncontrolled autonomy.
 
 The v1 should feel robust, but it should stay narrow.
@@ -85,17 +85,17 @@ All providers should implement the same interface.
 
 ### 3. MCP isolation for publishing
 
-The app backend should not directly implement Blogger logic in the orchestration layer.
+The app backend should not directly implement dev.to logic in the orchestration layer.
 
-All Blogger publishing should happen through a separate Blogger MCP server. This keeps the system modular and makes it easy to add other publishing targets later.
+All dev.to publishing should happen through a separate dev.to MCP server. This keeps the system modular and makes it easy to add other publishing targets later.
 
 ### 4. Local-first developer experience
 
-A user should be able to clone the repo, fill `.env`, run a few commands, connect a model provider and Blogger, and use the app locally.
+A user should be able to clone the repo, fill `.env`, run a few commands, connect a model provider and dev.to, and use the app locally.
 
 ### 5. Human-in-the-loop by default
 
-The system drafts. It does not silently publish final content. The Blogger output should be a draft.
+The system drafts. It does not silently publish final content. The dev.to output should be a draft.
 
 ***
 
@@ -133,19 +133,27 @@ The system drafts. It does not silently publish final content. The Blogger outpu
              | MCP over stdio / stream transport
              v
 +---------------------------+
-|     Blogger MCP Server    |
-| OAuth handling            |
-| list blogs                |
-| create draft post         |
-| get post                  |
+|     dev.to MCP Server    |
+| ghcr.io/arun2728/         |
+|   dev-to-mcp:latest       |
+| Streamable HTTP (/mcp)    |
+| create draft article      |
+| list articles             |
+| get article               |
 +------------+--------------+
              |
-             | Blogger API
+             | dev.to API
              v
 +---------------------------+
-|         Blogger API       |
+|         dev.to API       |
 +---------------------------+
 ```
+
+> Note: In v1 the dev.to MCP server is consumed as the public Docker image
+> `ghcr.io/arun2728/dev-to-mcp:latest` (see
+> [source](https://github.com/arun2728/dev-to-mcp)) rather than built from a
+> sibling repo. The backend talks to it over Streamable HTTP at
+> `${DEVTO_MCP_URL}` (default `http://devto-mcp:3000/mcp` in docker compose).
 
 ***
 
@@ -175,7 +183,7 @@ Recommendation: start with a simple in-process job runner and event bus. Keep th
 - TypeScript Node.js server.
 - MCP SDK.
 - Google OAuth integration.
-- Blogger API client.
+- dev.to API client.
 
 ### Model Providers
 
@@ -190,7 +198,7 @@ Recommendation: start with a simple in-process job runner and event bus. Keep th
 - Logging.
 - Retry utilities.
 - HTML sanitization.
-- Markdown to Blogger HTML conversion.
+- Markdown to dev.to HTML conversion.
 
 ***
 
@@ -216,12 +224,6 @@ content-os/
         prompts/
         events/
         mcp/
-    mcp-blogger/
-      src/
-        server/
-        tools/
-        auth/
-        blogger/
   packages/
     shared/
       src/
@@ -229,13 +231,19 @@ content-os/
         types/
         constants/
         utils/
+  Dockerfile.api
+  Dockerfile.web
+  docker-compose.yml       # pulls ghcr.io/arun2728/dev-to-mcp:latest
   .env.example
   pnpm-workspace.yaml
   package.json
   README.md
 ```
 
-If the coding agent wants a simpler structure, collapse `apps/api` and `apps/web` into one Next.js app and keep `apps/mcp-blogger` separate.
+The dev.to MCP server is **not** part of this repo. It is consumed as the
+public image `ghcr.io/arun2728/dev-to-mcp:latest`
+(source: https://github.com/arun2728/dev-to-mcp) and wired up as a separate
+compose service.
 
 ***
 
@@ -252,7 +260,7 @@ The frontend is the user-facing workspace for:
 - watching job progress,
 - viewing generated artifacts,
 - copying the LinkedIn draft,
-- opening the Blogger draft link.
+- opening the dev.to draft link.
 
 ### Key Screens
 
@@ -287,8 +295,8 @@ Displays:
 - title,
 - outline,
 - final blog content preview,
-- Blogger draft URL,
-- Blogger post metadata,
+- dev.to draft URL,
+- dev.to article metadata,
 - LinkedIn draft text,
 - copy buttons.
 
@@ -300,9 +308,9 @@ Displays:
 - A visible “what the system knows so far” brief panel.
 - Clear error messages.
 - Copy LinkedIn draft button.
-- Open Blogger draft button.
+- Open dev.to draft button.
 - Model provider selector in settings.
-- Blogger connection status in settings.
+- dev.to connection status in settings.
 
 ***
 
@@ -333,8 +341,8 @@ The orchestrator is the brain of the app. It should:
 
 ### What it should NOT do
 
-- It should not directly implement Blogger API logic.
-- It should not directly do OAuth for Blogger.
+- It should not directly implement dev.to API logic.
+- It should not directly do OAuth for dev.to.
 - It should not keep provider-specific prompt logic spread across the codebase.
 
 ***
@@ -351,9 +359,9 @@ The worker performs the longer-running writing and publishing flow outside the r
 - Generate outline.
 - Generate article draft.
 - Run editorial cleanup.
-- Convert output into Blogger-ready HTML.
+- Convert output into dev.to-ready HTML.
 - Generate a LinkedIn draft.
-- Publish to Blogger as draft through MCP.
+- Publish to dev.to as draft through MCP.
 - Save artifacts in memory.
 - Update job state throughout.
 
@@ -363,18 +371,17 @@ Each stage should write artifacts incrementally so the system can recover or deb
 
 ***
 
-## 4. Blogger MCP Server
+## 4. dev.to MCP Server
 
 ### Purpose
 
-Encapsulate all Blogger-related behavior behind MCP tools.
+Encapsulate all dev.to-related behavior behind MCP tools.
 
 ### Responsibilities
 
-- Handle Google OAuth.
-- List available blogs.
-- Create Blogger draft posts.
-- Fetch post details.
+- Authenticate via dev.to API key.
+- Create draft articles.
+- List and fetch articles.
 - Return normalized structured results.
 
 ### Why separate service
@@ -477,22 +484,20 @@ interface JobArtifacts {
   articleHtml?: string;
   finalTitle?: string;
   linkedinDraft?: string;
-  bloggerDraft?: BloggerDraftResult;
+  devtoDraft?: DevToDraftResult;
 }
 ```
 
-### BloggerDraftResult
+### DevToDraftResult
 
 ```ts
-interface BloggerDraftResult {
-  blogId: string;
-  postId: string;
+interface DevToDraftResult {
+  articleId: string;
   title: string;
   url?: string;
-  selfLink?: string;
-  published?: string;
-  updated?: string;
-  status?: string;
+  dashboardUrl?: string;
+  createdAt?: string;
+  published?: boolean;
 }
 ```
 
@@ -671,18 +676,17 @@ Tasks:
 - remove generic AI filler phrases,
 - ensure CTA exists if asked.
 
-### Stage 4: Blogger Formatting
+### Stage 4: dev.to Formatting
 
 Input: final markdown.
 
-Output: Blogger-safe HTML.
+Output: dev.to-compatible markdown.
 
 Tasks:
 
-- convert markdown to HTML,
-- sanitize HTML,
 - ensure heading levels are clean,
-- ensure code blocks render sensibly,
+- ensure code blocks use proper fenced syntax,
+- validate front matter compatibility,
 - remove unsupported constructs if needed.
 
 ### Stage 5: LinkedIn Draft Generation
@@ -699,7 +703,7 @@ Requirements:
 - no hashtags spam,
 - easy to copy.
 
-### Stage 6: Blogger Draft Publish via MCP
+### Stage 6: dev.to Draft Publish via MCP
 
 Input:
 
@@ -709,7 +713,7 @@ Input:
 
 Output:
 
-- Blogger post metadata,
+- dev.to article metadata,
 - draft URL if available,
 - post id.
 
@@ -722,7 +726,7 @@ Store and expose:
 - markdown,
 - html,
 - linkedin draft,
-- blogger publish response.
+- dev.to publish response.
 
 ***
 
@@ -761,7 +765,7 @@ Do not blindly retry malformed prompt logic or invalid OAuth state.
 
 ### Idempotency
 
-Publishing to Blogger should be protected against accidental duplicate drafts.
+Publishing to dev.to should be protected against accidental duplicate drafts.
 
 Possible strategy:
 
@@ -846,9 +850,9 @@ Event examples:
 
 Sets active provider config for the session.
 
-### `GET /api/integrations/blogger/status`
+### `GET /api/integrations/devto/status`
 
-Returns Blogger connection status and available blogs if connected.
+Returns dev.to connection status and available blogs if connected.
 
 ***
 
@@ -858,7 +862,7 @@ Returns Blogger connection status and available blogs if connected.
 
 Publishing should be exposed as tools instead of hardcoded backend logic. That keeps the app extensible and consistent with the MCP model.
 
-## Blogger MCP tool surface for v1
+## dev.to MCP tool surface for v1
 
 Keep it small.
 
@@ -904,7 +908,7 @@ Output:
   "postId": "987654",
   "title": "Why MCP matters for modern AI products",
   "url": "https://example.blogspot.com/2026/04/...",
-  "selfLink": "https://www.googleapis.com/blogger/v3/blogs/...",
+  "url": "https://dev.to/username/article-slug",
   "status": "DRAFT"
 }
 ```
@@ -941,13 +945,13 @@ Output:
 
 ### MCP Client Wrapper in backend
 
-Create a small `BloggerMcpClient` abstraction so the orchestration layer calls clean methods like:
+Create a small `dev.toMcpClient` abstraction so the orchestration layer calls clean methods like:
 
 ```ts
-interface BloggerPublisher {
+interface dev.toPublisher {
   listBlogs(): Promise<BlogSummary[]>;
-  createDraftPost(input: CreateDraftPostInput): Promise<BloggerDraftResult>;
-  getPost(input: GetPostInput): Promise<BloggerDraftResult>;
+  createDraftPost(input: CreateDraftPostInput): Promise<dev.toDraftResult>;
+  getPost(input: GetPostInput): Promise<dev.toDraftResult>;
 }
 ```
 
@@ -955,19 +959,19 @@ This keeps MCP transport details out of the business logic.
 
 ***
 
-## Blogger OAuth Design
+## dev.to OAuth Design
 
 ### Requirements
 
-The MCP server should handle Blogger authentication independently.
+The MCP server should handle dev.to authentication independently.
 
 ### Desired behavior
 
-- User clicks connect Blogger.
+- User clicks connect dev.to.
 - Backend opens/connects to MCP auth flow.
 - MCP server completes Google OAuth.
 - Access token is stored securely for local use.
-- Server can now call Blogger tools.
+- Server can now call dev.to tools.
 
 ### For local development
 
@@ -1134,7 +1138,7 @@ Examples:
 - invalid tool input,
 - auth expired.
 
-#### Blogger API errors
+#### dev.to API errors
 
 Examples:
 
@@ -1163,14 +1167,14 @@ Examples:
 
 ### Content safety
 
-- Sanitize HTML before sending to Blogger.
+- Sanitize HTML before sending to dev.to.
 - Avoid prompt injection from user content by separating system instructions from user input.
 - Do not allow arbitrary tool invocation from the frontend.
 
 ### Publishing safety
 
 - Draft only in v1.
-- Manual review in Blogger after generation.
+- Manual review in dev.to after generation.
 - Add idempotency to prevent duplicate draft creation.
 
 ***
@@ -1188,7 +1192,7 @@ This project will be much easier to debug if every stage is observable.
 - stage start/end,
 - model provider calls,
 - MCP tool calls,
-- Blogger publish result,
+- dev.to publish result,
 - failures.
 
 ### Capture stage artifacts
@@ -1227,7 +1231,7 @@ PORT=3000
 API_PORT=4000
 NODE_ENV=development
 
-# Blogger MCP / Google OAuth
+# dev.to MCP / Google OAuth
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://localhost:4100/oauth/callback
@@ -1241,13 +1245,25 @@ Example target:
 pnpm install
 pnpm dev:web
 pnpm dev:api
-pnpm dev:mcp-blogger
+
+# Publish stage talks to dev.to MCP over HTTP; run the image:
+docker run --rm -d --name devto-mcp -p 3005:3000 \
+  -e TRANSPORT=http -e DEVTO_API_KEY=$DEVTO_API_KEY \
+  ghcr.io/arun2728/dev-to-mcp:latest
+export DEVTO_MCP_URL=http://localhost:3005/mcp
 ```
 
 Or a single root command:
 
 ```bash
 pnpm dev
+```
+
+Or bring up the whole stack with docker compose:
+
+```bash
+docker compose pull devto-mcp
+docker compose up --build
 ```
 
 ***
@@ -1307,19 +1323,22 @@ Success criterion:
 
 - system can generate article + LinkedIn draft locally without publishing.
 
-### Phase 5: Blogger MCP server
+### Phase 5: dev.to MCP server
 
-Build:
+The dev.to MCP server is provided as a prebuilt public image:
+`ghcr.io/arun2728/dev-to-mcp:latest`
+([source](https://github.com/arun2728/dev-to-mcp)).
 
-- MCP server bootstrapping,
-- Google OAuth,
-- `list_blogs`,
-- `create_draft_post`,
-- `get_post`.
+Integration work:
+
+- add the image as a `devto-mcp` service in `docker-compose.yml`,
+- pass `TRANSPORT=http`, `PORT=3000`, and `DEVTO_API_KEY`,
+- expose `/mcp` on the compose network.
 
 Success criterion:
 
-- standalone MCP server can create a Blogger draft.
+- `docker compose up` brings the MCP service up healthy and the
+  `create_article` tool creates a dev.to draft end-to-end.
 
 ### Phase 6: End-to-end publish flow
 
@@ -1327,11 +1346,11 @@ Build:
 
 - backend MCP client wrapper,
 - publish step in worker,
-- artifact panel with Blogger result.
+- artifact panel with dev.to result.
 
 Success criterion:
 
-- user can go from topic to Blogger draft URL.
+- user can go from topic to dev.to draft URL.
 
 ### Phase 7: Polish
 
@@ -1360,13 +1379,13 @@ The v1 is complete when all of the following are true:
 - System knows when the brief is ready.
 - User can start the draft job.
 - Background worker creates outline, article, LinkedIn draft.
-- Blogger MCP server can create a draft post.
-- UI shows Blogger draft result and LinkedIn draft.
+- dev.to MCP server can create a draft post.
+- UI shows dev.to draft result and LinkedIn draft.
 
 ### Technical
 
 - Backend is provider-agnostic.
-- Blogger publishing is isolated behind MCP.
+- dev.to publishing is isolated behind MCP.
 - State is stored through interfaces, not ad hoc objects.
 - Job statuses are explicit and stream to UI.
 - Failures are recoverable and visible.
@@ -1376,7 +1395,7 @@ The v1 is complete when all of the following are true:
 - User always knows current state.
 - User can read the brief summary.
 - User can copy LinkedIn draft easily.
-- User can open Blogger draft easily.
+- User can open dev.to draft easily.
 - Errors are understandable.
 
 ***
@@ -1391,7 +1410,7 @@ The architecture should make these easy later:
 - saved sessions,
 - content history,
 - brand voice memory,
-- document ingestion from Blogger or Google Docs.
+- document ingestion from dev.to or Google Docs.
 
 ### More publishing targets
 
@@ -1424,7 +1443,7 @@ The architecture should make these easy later:
 ### Important architectural decisions
 
 1. Keep model provider logic isolated behind interfaces.
-2. Keep Blogger integration isolated behind MCP.
+2. Keep dev.to integration isolated behind MCP.
 3. Keep state behind stores, even though it is in-memory now.
 4. Use typed schemas for every boundary.
 5. Prefer deterministic pipelines over free-form autonomy.
@@ -1436,7 +1455,7 @@ The architecture should make these easy later:
 
 - Letting the clarifier generate the article.
 - Mixing provider-specific code into business logic.
-- Directly calling Blogger from the orchestration layer.
+- Directly calling dev.to from the orchestration layer.
 - Storing secrets in the frontend.
 - Treating background jobs as opaque black boxes.
 - Skipping typed structured output.
@@ -1448,7 +1467,7 @@ The architecture should make these easy later:
 
 ```text
 1. User opens app.
-2. User selects provider and connects Blogger.
+2. User selects provider and connects dev.to.
 3. User enters article topic.
 4. Clarifier asks follow-up questions until brief is ready.
 5. User confirms and starts draft generation.
@@ -1457,17 +1476,17 @@ The architecture should make these easy later:
 8. Worker writes article.
 9. Worker edits and formats article.
 10. Worker generates LinkedIn draft.
-11. Worker calls Blogger MCP create_draft_post.
-12. Blogger MCP server publishes draft to Blogger.
+11. Worker calls dev.to MCP create_draft_post.
+12. dev.to MCP server publishes draft to dev.to.
 13. Worker stores result.
-14. UI shows Blogger draft link and LinkedIn draft.
+14. UI shows dev.to draft link and LinkedIn draft.
 ```
 
 ***
 
 ## Final Recommendation
 
-Build this as a local-first monorepo with a strict separation between UI, orchestration, worker, and Blogger MCP server.
+Build this as a local-first monorepo with a strict separation between UI, orchestration, worker, and dev.to MCP server.
 
 Do not overcomplicate v1 with a database or too many agents. The strongest version of this project is one that feels clean, extensible, and production-minded.
 

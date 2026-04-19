@@ -48,7 +48,7 @@ export default function Home() {
             Content OS
           </h1>
           <p className="text-lg text-muted-foreground">
-            AI-powered content orchestration: clarify, outline, write, edit, and publish to Blogger
+            AI-powered content orchestration: clarify, outline, write, edit, and publish to dev.to
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export default function Home() {
             },
             {
               title: 'Publish',
-              description: 'Send directly to your Blogger blog',
+              description: 'Publish as a draft on dev.to',
             },
           ].map((item) => (
             <Card key={item.title} className="text-center">

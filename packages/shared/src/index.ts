@@ -82,22 +82,26 @@ export const EditedDraftSchema = z.object({
 export type EditedDraft = z.infer<typeof EditedDraftSchema>;
 
 // ============================================================================
-// BLOGGER PUBLISHING TYPES
+// LINKEDIN DRAFT TYPES
 // ============================================================================
 
-export const BloggerCredentialsSchema = z.object({
-  accessToken: z.string(),
-  refreshToken: z.string().optional(),
-  expiresAt: z.number().optional(),
-  blogId: z.string().optional(),
+export const LinkedInDraftSchema = z.object({
+  id: z.string(),
+  editedDraftId: z.string(),
+  content: z.string(),
+  createdAt: z.date(),
 });
 
-export type BloggerCredentials = z.infer<typeof BloggerCredentialsSchema>;
+export type LinkedInDraft = z.infer<typeof LinkedInDraftSchema>;
+
+// ============================================================================
+// DEV.TO PUBLISHING TYPES
+// ============================================================================
 
 export const PublishedPostSchema = z.object({
   id: z.string(),
-  blogUrl: z.string(),
   postUrl: z.string(),
+  dashboardUrl: z.string().optional(),
   publishedAt: z.date(),
 });
 
@@ -114,6 +118,7 @@ export const JobStatusEnum = z.enum([
   'outlining',
   'writing',
   'editing',
+  'generating_linkedin',
   'publishing',
   'completed',
   'failed',
@@ -122,7 +127,7 @@ export const JobStatusEnum = z.enum([
 export type JobStatus = z.infer<typeof JobStatusEnum>;
 
 export const JobStageResultSchema = z.object({
-  stage: z.enum(['clarify', 'outline', 'write', 'edit', 'publish']),
+  stage: z.enum(['clarify', 'outline', 'write', 'edit', 'linkedin', 'publish']),
   status: z.enum(['pending', 'in_progress', 'completed', 'failed']),
   data: z.record(z.any()).optional(),
   error: z.string().optional(),
@@ -135,8 +140,9 @@ export const ContentJobSchema = z.object({
   id: z.string(),
   status: JobStatusEnum,
   userPrompt: z.string(),
-  currentStage: z.enum(['clarify', 'outline', 'write', 'edit', 'publish']),
+  currentStage: z.enum(['clarify', 'outline', 'write', 'edit', 'linkedin', 'publish']),
   stageResults: z.array(JobStageResultSchema),
+  linkedinDraft: LinkedInDraftSchema.optional(),
   publishedPost: PublishedPostSchema.optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -185,7 +191,7 @@ export type AnswerClarifyingQuestionsRequest = z.infer<
 
 export const JobProgressEventSchema = z.object({
   jobId: z.string(),
-  stage: z.enum(['clarify', 'outline', 'write', 'edit', 'publish']),
+  stage: z.enum(['clarify', 'outline', 'write', 'edit', 'linkedin', 'publish']),
   status: z.enum(['pending', 'in_progress', 'completed', 'failed']),
   progress: z.number().min(0).max(100),
   message: z.string().optional(),
@@ -200,7 +206,7 @@ export const HealthResponseSchema = z.object({
   timestamp: z.date(),
   services: z.object({
     api: z.enum(['ok', 'error']),
-    blogger: z.enum(['ok', 'error']).optional(),
+    devto: z.enum(['ok', 'error']).optional(),
   }),
 });
 

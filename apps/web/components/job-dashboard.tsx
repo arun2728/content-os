@@ -117,7 +117,7 @@ export function JobDashboard({ jobId, onComplete }: JobDashboardProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-green-800 dark:text-green-200">
-              Your content has been successfully published to Blogger.
+              Your content has been successfully published to dev.to.
             </p>
             <Button onClick={onComplete} className="w-full">
               Create Another Post
